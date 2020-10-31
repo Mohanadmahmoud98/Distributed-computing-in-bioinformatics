@@ -1,0 +1,107 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <time.h>
+#include <omp.h>
+using namespace std;
+
+int main() {
+	int id, nthreads;
+	omp_set_num_threads(1024);
+	int i = 0;
+	string str[1366];
+	ifstream myfile;
+	string codons[27262];
+	string codon = "";
+	string types[21][6]{{"ttt", "ttc", " ", " ", " ", " "}, { "tta", "ttg", "ctt", "ctc", "cta", "ctg" },
+	{ "tct", "tcc", "tca", "tcg", "agt", "agc" }, { "tat", "tac", " ", " ", " ", " " },
+	{ "taa", "tag", "tga", " ", " ", " " }, { "tgt", "tgc", " ", " ", " ", " " },
+	{ "tgg", " ", " ", " ", " ", " " }, { "cct", "ccc", "cca", "ccg", " ", " " },
+	{ "cat", "cac", " ", " ", " ", " " }, { "caa", "cag", " ", " ", " ", " " },
+	{ "cgt", "cgc", "cga", "cgg", "aga", "agg" }, { "att", "atc", "ata", " ", " ", " " },
+	{ "atg", " ", " ", " ", " ", " " }, { "act", "acc", "aca", "acg", " ", " " },
+	{ "aat", "aac", " ", " ", " ", " " }, { "aaa", "aag", " ", " ", " ", " " },
+	{ "gtt", "gtc", "gta", "gtg", " ", " " }, { "gct", "gcc", "gca", "gcg", " ", " " },
+	{ "gat", "gac", " ", " ", " ", " " }, { "gaa", "gag", " ", " ", " ", " " },
+	{ "ggt", "ggc", "gga", "ggg", " ", " " }};
+	vector<pair<string, int>> typescount{ { "phe", 0 }, { "lue", 0 },
+	{ "ser", 0 }, { "tyr", 0 },
+	{ "stop", 0 }, { "cys", 0 },
+	{ "trp", 0 }, { "pro", 0 },
+	{ "hills", 0 }, { "gin", 0 },
+	{ "arg", 0 }, { "lle", 0 },
+	{ "met", 0 }, { "thr", 0 },
+	{ "asn", 0 }, { "lys", 0 },
+	{ "val", 0 }, { "ala", 0 },
+	{ "asb", 0 }, { "glu", 0 },
+	{ "gly", 0 }, };
+	myfile.open("InputSeq.dat.txt");
+	while (i<1366)
+	{
+
+		getline(myfile, str[i]);
+
+		i++;
+
+	}
+	i = 0;
+	myfile.close();
+	for (int j = 1; j < 1365; j++)
+	{
+
+		for (int x = 0; x <str[j].length(); x++)
+		{
+			if (isalpha(str[j].at(x)))
+			{
+				codon += str[j].at(x);
+			}
+
+		}
+	}
+	clock_t start, finish;
+	start = clock();
+	int index = 0;
+#pragma omp parallel private(index)
+	{
+#pragma omp sections
+{
+#pragma omp section
+		for (index = 0; index < 27262; index++)
+		{
+
+			for (int x = index * 3; x < (index * 3) + 3; x++)
+			{
+				codons[index] += codon.at(x);
+			}
+		}
+#pragma omp section
+		for (index = 0; index < 27262; index++)
+		{
+			for (int x = 0; x < 21; x++)
+			{
+				for (int z = 0; z < 6; z++)
+				{
+					if (codons[index] == types[x][z])
+					{
+#pragma omp atomic
+						typescount[x].second++;
+
+					}
+				}
+
+			}
+		}
+	}
+	}
+	finish = clock();
+	double processing_time;
+	processing_time = (double(finish - start) / CLOCKS_PER_SEC);
+	cout << "Time taken to parallel for =" << processing_time << "\n";
+	for (int v = 0; v < 21; v++)
+	{
+		float per = typescount[v].second;
+		cout << "The number of (" << typescount[v].first << ")" << "is =" << typescount[v].second << " with percentage " << (per / 27262) * 100 << "%" << "\n";
+	}
+	return 0;
+}
